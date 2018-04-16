@@ -44,6 +44,7 @@ CREATE TABLE tblCustomerType (
 	CustTypeID INT IDENTITY(1,1) PRIMARY KEY not null,
 	CustTypeName varchar(100) not null,
 	CustTypeDesc varchar(100)
+)
 
 CREATE TABLE tblProductType (
 	ProductTypeID INT IDENTITY(1, 1) PRIMARY KEY NOT NULL,
