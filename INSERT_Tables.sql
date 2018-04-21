@@ -32,6 +32,15 @@ INSERT INTO tblAddress(StreetAddress, City, [State], Zip)
 SELECT CustomerAddress, CustomerCity, CustomerState, CustomerZIP
 FROM [dbo].[WorkingCustomerData]
 
+DELETE FROM tblAddress;
+DELETE FROM tblCustomer;
+SET IDENTITY_INSERT tblAddress ON;
+INSERT INTO tblAddress (AddressID, StreetAddress, City, [State], Zip) SELECT CustomerID, CustomerAddress, CustomerCity, CustomerState, CustomerZIP FROM WorkingCustomerData;
+SET IDENTITY_INSERT tblAddress OFF;
+SET IDENTITY_INSERT tblCustomer ON;
+INSERT INTO tblCustomer (CustomerID, FirstName, LastName, Email, PhoneNumber, DOB, AddressID) SELECT CustomerID, CustomerFName, CustomerLName, Email, PhoneNum, DateOfBirth, CustomerID FROM WorkingCustomerData;
+SET IDENTITY_INSERT tblCustomer OFF;
+
 -- CREATE PROC to get address id
 ALTER PROC uspGetAddressID
 @Street varchar (100),
@@ -82,7 +91,7 @@ COMMIT TRAN G1
 SET @Run = @Run -1
 END
 */
-
+/*
 CREATE PROC [dbo].[long27km_uspInsertAddress]
 @AddressID INT = NULL,
 @StreetAddress varchar(50),
@@ -96,7 +105,6 @@ BEGIN
 	
 	IF @ID IS NOT NULL
 	BEGIN
-		/*PRINT 'Address found in DB, returning existing entry';*/
 		RETURN;
 	END		 
 
@@ -151,8 +159,7 @@ END
 
 GO
 
-
-CREATE /*CREATE*/ PROC [dbo].[long27km_usp_SimpleETLCustomer]
+CREATE PROC [dbo].[long27km_usp_SimpleETLCustomer]
 @CustID INT
 AS
 BEGIN
@@ -185,3 +192,4 @@ EXEC long27km_usp_SimpleETLCustomer @CustID = @CustID;
 SET @ROW_COUNT = @ROW_COUNT - 1;
 
 END
+*/
