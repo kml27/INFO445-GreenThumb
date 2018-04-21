@@ -53,7 +53,7 @@ DECLARE @D_OB date
 DECLARE @AddID INT
 DECLARE @ST varchar(50)
 DECLARE @ZipC int
-
+/*
 WHILE @Run > 0
 BEGIN
 SET @ID = (SELECT MIN(CustomerID) FROM [WorkingCustomerData])
@@ -81,4 +81,101 @@ COMMIT TRAN G1
 
 SET @Run = @Run -1
 END
+*/
+
+CREATE PROC [dbo].[long27km_uspInsertAddress]
+@AddressID INT = NULL,
+@StreetAddress varchar(50),
+@City varchar(50),
+@State varchar(50),
+@Zip varchar(15),
+@ID INT OUTPUT
+AS
+BEGIN
+	SET @ID = (SELECT TOP 1 A.AddressID FROM tblAddress A WHERE A.StreetAddress = @StreetAddress AND A.City = @City AND A.[State] = @State AND A.Zip = @Zip)
+	
+	IF @ID IS NOT NULL
+	BEGIN
+		/*PRINT 'Address found in DB, returning existing entry';*/
+		RETURN;
+	END		 
+
+	IF @AddressID IS NULL
+	BEGIN
+		INSERT INTO tblAddress (StreetAddress, City, [State], Zip) VALUES (@StreetAddress, @City, @State, @Zip);
+		SET @ID = (SELECT SCOPE_IDENTITY()); 
+	END
+	ELSE
+	BEGIN
+		SET IDENTITY_INSERT tblAddress ON;
+			INSERT INTO tblAddress (AddressID, StreetAddress, City, [State], Zip) VALUES (@AddressID, @StreetAddress, @City, @State, @Zip);
+		SET @ID = @AddressID; 
+		SET IDENTITY_INSERT tblAddress OFF;
+	END
+END
+
+GO
+
+CREATE PROC [dbo].[long27km_uspInsertCustomer]
+@CustID INT = NULL,
+@AddressID INT = NULL,
+@FName varchar(100),
+@LName varchar(100), 
+@Phone varchar(20),
+@Email varchar(256),
+@DOB DATE,
+@StreetAddress varchar(50),
+@City varchar(50),
+@State varchar(50),
+@Zip varchar(15)
+AS
+BEGIN
+	
+	EXEC long27km_uspInsertAddress @AddressID=@AddressID, @StreetAddress = @StreetAddress, @City= @City, @State = @State, @Zip = @Zip, @ID = @AddressID OUTPUT
+
+
+	IF @CustID IS NULL
+	BEGIN
+	
+		INSERT INTO tblCustomer (FirstName, LastName, PhoneNumber, Email, DOB, AddressID) VALUES (@FName, @LName, @Phone, @Email, @DOB, @AddressID)
+	END
+	ELSE
+	BEGIN
+		SET IDENTITY_INSERT tblCustomer ON;
+
+		INSERT INTO tblCustomer (CustomerID, FirstName, LastName, PhoneNumber, Email, DOB, AddressID) VALUES (@CustID, @FName, @LName, @Phone, @Email, @DOB, @AddressID)
+
+		SET IDENTITY_INSERT tblCustomer OFF;
+	END
+END
+
+GO
+
+
+CREATE /*CREATE*/ PROC [dbo].[long27km_usp_SimpleETLCustomer]
+@CustID INT
+AS
+BEGIN
+DECLARE @Fname varchar(50) = (SELECT CustomerFname FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @Lname varchar(50) = (SELECT CustomerLname FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @Address varchar(100) = (SELECT CustomerAddress FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @City varchar(50) = (SELECT CustomerCity FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @State varchar(50) = (SELECT CustomerState FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @Zip varchar(15) = (SELECT CustomerZIP FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @Email varchar(256) = (SELECT Email FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @DOB DATE = (SELECT DateOfBirth FROM WorkingCustomerData WHERE CustomerID = @CustID);
+DECLARE @Phone varchar(20) = (SELECT PhoneNum FROM WorkingCustomerData WHERE CustomerID = @CustID);
+
+EXEC long27km_uspInsertCustomer  @CustID = @CustID, @FName = @FName, @LName = @LName, @StreetAddress = @Address, @City = @City, @State = @State, @Zip = @Zip, @Email = @Email, @DOB = @DOB, @Phone = @Phone
+
+DELETE FROM WorkingCustomerData WHERE CustomerID = @CustID;
+
+END
+
+GO
+
+
+
+
+
 
