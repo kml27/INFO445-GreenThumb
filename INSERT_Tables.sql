@@ -174,8 +174,14 @@ END
 
 GO
 
+DECLARE @ROW_COUNT INT = (SELECT COUNT(*) FROM WorkingCustomerData); 
+WHILE @ROW_COUNT > 0
+BEGIN
 
+DECLARE @CustID INT = (SELECT MIN(CustomerID) FROM WorkingCustomerData);
 
+EXEC long27km_usp_SimpleETLCustomer @CustID = @CustID;
 
+SET @ROW_COUNT = @ROW_COUNT - 1;
 
-
+END
