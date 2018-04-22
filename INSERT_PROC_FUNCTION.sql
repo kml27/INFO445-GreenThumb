@@ -13,7 +13,6 @@ CREATE TABLE [dbo].[WorkingCustomerData](
 	[PhoneNum] varchar (20) NULL,
 )
 GO
--- drop table [WorkingCustomerData]
 
 ALTER table [dbo].[tblCustomer]
 ALTER column [PhoneNumber] varchar (20)
@@ -31,13 +30,18 @@ SELECT CustomerAddress, CustomerCity, CustomerState, CustomerZIP
 FROM [dbo].[WorkingCustomerData]
 
 -- CREATE PROC to get address id
-ALTER PROC uspGetAddressID
+CREATE PROC emilyd61_uspGetAddressID
 @Street varchar (100),
 @Zipcode int,
 @Add_ID int OUTPUT
 AS
 SET @Add_ID = (SELECT AddressID FROM tblAddress 
 				WHERE StreetAddress = @Street AND Zip = @Zipcode)
+IF @Add_ID IS NULL
+BEGIN PRINT '@Add_ID cannot be null. ERROR.'
+	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
+	RETURN
+	END
 
 -- insert customer info
 DECLARE @Run INT = (SELECT COUNT(*) FROM [WorkingCustomerData])
@@ -185,7 +189,7 @@ SET @ROW_COUNT = @ROW_COUNT - 1;
 END
 
 -- get Product Type
-CREATE PROC uspGetProductTypeID
+CREATE PROC emilyd61_uspGetProductTypeID
 @ProdTypeName varchar(100),
 @ProdTypeDesc varchar(100),
 @PrdoTypeID int OUTPUT
