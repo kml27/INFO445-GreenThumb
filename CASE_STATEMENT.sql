@@ -59,3 +59,47 @@ GROUP BY (CASE
 		ELSE 'Rocky Mountains'
 		END)
 ORDER BY TotalNum DESC
+
+/*
+-- Joseph Chou
+Group customers into generations based on their date of birth:
+- GI Generation:     1901 - 1924
+- Silent Generation: 1925 - 1945
+- Baby Boomers:      1946 - 1964
+- Generation X:      1965 - 1979
+- Generation Y:      1980 - 1994
+- Generatino Z:      1995 - Present
+*/
+
+SELECT (CASE
+	WHEN Year(DOB) BETWEEN 1901 AND 1924
+		THEN 'GI Generation'
+	WHEN Year(DOB) BETWEEN 1925 AND 1945
+		THEN 'Silent Generation'
+	WHEN Year(DOB) BETWEEN 1946 AND 1964
+		THEN 'Baby Boomers'
+	WHEN Year(DOB) BETWEEN 1965 AND 1979
+		THEN 'Generation X'
+	WHEN Year(DOB) BETWEEN 1980 AND 1994
+		THEN 'Generation Y'
+	WHEN Year(DOB) >= 1995
+		THEN 'Generation Z'
+	ELSE 'Other'
+END) AS 'Generation', COUNT(*) AS 'TotalNum'
+FROM tblCustomer
+GROUP BY (CASE
+	WHEN Year(DOB) BETWEEN 1901 AND 1924
+		THEN 'GI Generation'
+	WHEN Year(DOB) BETWEEN 1925 AND 1945
+		THEN 'Silent Generation'
+	WHEN Year(DOB) BETWEEN 1946 AND 1964
+		THEN 'Baby Boomers'
+	WHEN Year(DOB) BETWEEN 1965 AND 1979
+		THEN 'Generation X'
+	WHEN Year(DOB) BETWEEN 1980 AND 1994
+		THEN 'Generation Y'
+	WHEN Year(DOB) >= 1995
+		THEN 'Generation Z'
+	ELSE 'Other'
+END)
+ORDER BY TotalNum DESC
