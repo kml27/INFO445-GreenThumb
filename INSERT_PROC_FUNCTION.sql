@@ -1,7 +1,5 @@
 USE [GREEN_THUMB]
 
-SELECT * FROM tblAddress
-
 CREATE TABLE [dbo].[WorkingCustomerData](
 	[CustomerID] int identity (1,1) primary key not null,
 	[CustomerFname] [varchar](50) NULL,
@@ -15,7 +13,7 @@ CREATE TABLE [dbo].[WorkingCustomerData](
 	[PhoneNum] varchar (20) NULL,
 )
 GO
-drop table [WorkingCustomerData]
+-- drop table [WorkingCustomerData]
 
 ALTER table [dbo].[tblCustomer]
 ALTER column [PhoneNumber] varchar (20)
@@ -185,3 +183,37 @@ EXEC long27km_usp_SimpleETLCustomer @CustID = @CustID;
 SET @ROW_COUNT = @ROW_COUNT - 1;
 
 END
+
+-- get Product Type
+CREATE PROC uspGetProductTypeID
+@ProdTypeName varchar(100),
+@ProdTypeDesc varchar(100),
+@PrdoTypeID int OUTPUT
+AS
+SET @PrdoTypeID = (SELECT ProductTypeID FROM tblProductType 
+					WHERE ProductTypeID = @PrdoTypeID)
+IF @PrdoTypeID IS NULL
+BEGIN PRINT '@PrdoTypeID cannot be null. ERROR.'
+	RAISERROR ('@PrdoTypeID is unique key, it cannot be null.',11,1)
+	RETURN
+	END
+
+/* No under 18 years old seller*/
+CREATE FUNCTION fn_No18Seller()
+RETURNS INT
+AS
+BEGIN
+DECLARE @Ret INT = 0
+IF EXISTS (SELECT *
+			FROM tblOffering O JOIN tblCustomer C ON O.SellerID = C.CustomerID
+							JOIN tblProduct P ON O.ProductID = P.ProductID
+							AND C.DOB > (SELECT GetDate() - (365.25 * 18)))
+SET @Ret = 1
+RETURN @Ret
+END
+GO
+
+ALTER TABLE tblOffering
+ADD CONSTRAINT CK_No18Seller
+CHECK (dbo.fn_No18Seller() = 0)
+
