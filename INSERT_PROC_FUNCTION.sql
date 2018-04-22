@@ -24,6 +24,9 @@ SELECT [CustomerFname], [CustomerLname], [CustomerAddress], [CustomerCity], [Cus
 [CustomerZIP], [Email], [DateOfBirth], [PhoneNum]
 FROM [RAW_CUSTOMER]
 
+INSERT INTO [dbo].[tblProductType] ([ProductTypeName], [ProductTypeDesc])
+SELECT [ProductTypeName], [ProductTypeDescr]
+FROM [dbo].[RAW_PRODUCT_TYPE]
 
 INSERT INTO tblAddress(StreetAddress, City, [State], Zip)
 SELECT CustomerAddress, CustomerCity, CustomerState, CustomerZIP
@@ -220,4 +223,3 @@ GO
 ALTER TABLE tblOffering
 ADD CONSTRAINT CK_No18Seller
 CHECK (dbo.fn_No18Seller() = 0)
-
