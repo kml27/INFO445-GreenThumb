@@ -45,8 +45,8 @@ EndDate DATE
 
 CREATE TABLE tblCustomerType (
 CustTypeID INT IDENTITY(1,1) PRIMARY KEY not null,
-CustTypeName varchar(100) not null,
-CustTypeDesc varchar(100)
+CustTypeName varchar(250) not null,
+CustTypeDesc varchar(250)
 )
 
 CREATE TABLE tblProductType (

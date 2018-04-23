@@ -200,17 +200,16 @@ END
 */
 
 -- get Product Type
-CREATE PROC emilyd61_uspGetProductTypeID
+ALTER /*CREATE*/ PROC emilyd61_uspGetProductTypeID
 @ProdTypeName varchar(100),
-@ProdTypeDesc varchar(100),
-@PrdoTypeID int OUTPUT
+@ProdTypeID int OUTPUT
 AS
-SET @PrdoTypeID = (SELECT ProductTypeID FROM tblProductType 
-					WHERE ProductTypeID = @PrdoTypeID)
-IF @PrdoTypeID IS NULL
-BEGIN PRINT '@PrdoTypeID cannot be null. ERROR.'
-	RAISERROR ('@PrdoTypeID is unique key, it cannot be null.',11,1)
-	RETURN
+SET @ProdTypeID = (SELECT ProductTypeID FROM tblProductType 
+					WHERE ProductTypeName LIKE '%'+@ProdTypeName+'%')
+IF @ProdTypeID IS NULL
+	BEGIN 
+		RAISERROR ('@ProdTypeName not found',11,1)
+		RETURN
 	END
 
 /* No under 18 years old seller*/
@@ -306,4 +305,29 @@ BEGIN
 	SET @ROW_COUNT = @ROW_COUNT - 1;
 END
 
-SELECT * FROM tblProduct;
+CREATE PROC emilyd61_uspGetCustTypeID
+@CustTypeName varchar(100),
+@CustTypeDescr varchar(100),
+@CustTID int output
+AS 
+SET @CustTID = (SELECT CustTypeID FROM tblCustomerType WHERE CustTypeName = @CustTypeName)
+IF @CustTID IS NULL
+BEGIN RAISERROR ('@CustomerType not found',11,1)
+RETURN END
+
+INSERT INTO tblCustomerType (CustTypeName, CustTypeDesc)
+SELECT [CustomerType], [CustTypeDescr]
+FROM RAW_CUSTTYPE
+
+DELETE FROM workingCustCustType
+CREATE TABLE workingCustCustType (
+CustCustTypeID INT IDENTITY(1,1) PRIMARY KEY not null,
+CustFname varchar(250) not null,
+CustLname varchar(250) not null,
+StartDate DATE,
+EndDate DATE
+)
+
+insert into workingCustCustType (CustFname, CustLname)
+select [FirstName], [LastName]
+from tblCustomer
