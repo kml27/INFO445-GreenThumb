@@ -3,8 +3,10 @@
 USE GREEN_THUMB
 
 /*CASE STATEMENT WORK & Stored Procedures
-No other related codes. tblCustomer has over 10,000 rows; tblAddress has over 10,000 rows.
-tblProduct has 92 rows being populated. Other tables may have references: CustomerType, ProductType*/
+No other related codes. 
+We have over 15,000 rows (associated table may be more over 20,000) in the customers.
+Other tables may have references: CustomerType, ProductType, CustCustType, etc.
+*/
 
 /*
 -- Emily Ding
