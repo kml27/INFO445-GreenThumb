@@ -36,3 +36,15 @@ BEGIN
 	RETURN
 END
 GO
+
+CREATE PROCEDURE jchou8_uspGetCustTypeID
+@TypeName varchar(250),
+@CTID INT OUTPUT
+AS
+SET @CTID = (SELECT CustTypeID FROM tblCustomerType WHERE CustTypeName = @TypeName)
+IF @CTID IS NULL
+BEGIN
+	RAISERROR('The specified customer type does not exist.', 11, 1)
+	RETURN
+END
+GO
