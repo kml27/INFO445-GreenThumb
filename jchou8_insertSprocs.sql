@@ -127,10 +127,8 @@ CREATE PROCEDURE jchou8_uspInsertLineItem
 @SellFname varchar(100),
 @SellLname varchar(100),
 @SellDOB date,
-@ProdName varchar(100),
 @OffName varchar(50),
 @OffStart DATE,
-@OffEnd DATE,
 @Quantity INT
 AS
 DECLARE @ORID INT
