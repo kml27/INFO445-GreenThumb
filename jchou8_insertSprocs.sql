@@ -157,10 +157,8 @@ EXEC jchou8_uspGetOffering
 @SellFname = @SellFname,
 @SellLname = @SellLname,
 @SellDOB = @SellDOB,
-@ProdName = @ProdName,
 @Name = @OffName,
 @Start = @OffStart,
-@End = @OffEnd,
 @OffID = @OFID OUTPUT
 
 IF @OFID IS NULL
@@ -256,10 +254,8 @@ CREATE PROCEDURE jchou8_uspGetOffering
 @SellFname varchar(100),
 @SellLname varchar(100),
 @SellDOB date,
-@ProdName varchar(100),
 @Name varchar(50),
 @Start DATE,
-@End DATE,
 @OffID INT OUTPUT
 AS
 DECLARE @SID INT
@@ -271,18 +267,11 @@ EXEC emilyd61_uspGetCustID
 @??? = @SellLname
 @??? = @SellDOB
 @??? = @SID OUTPUT
-
-Need GetProduct stored procedure
-EXEC emilyd61_uspGetProdID
-@??? = @ProdName
-@??? = @PID OUTPUT
 */
 
 SET @OffID = (
 	SELECT OfferingID FROM tblOffering 
 	WHERE SellerID = @SID
-	AND ProductID = @PID
 	AND OfferingName = @Name
 	AND StartDate = @Start
-	AND EndDate = @End
 )
