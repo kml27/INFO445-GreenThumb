@@ -20,18 +20,7 @@ EXEC emilyd61_uspGetCustID
 @??? = @CustFname
 @??? = @CustLname
 @??? = @CustDOB
-@??? = @CID OUTPUT
-
-EXEC emilyd61_uspGetCustID
-@??? = @SellFname
-@??? = @SellLname
-@??? = @SellDOB
-@??? = @SID OUTPUT
-*/
-
-EXEC josiahc_uspGetRatingID
-@ratingName = @RateName,
-@ratingID = @RID OUTPUT
+@??? = @CID OUTPUT */
 
 IF @CID IS NULL
 	BEGIN
@@ -39,6 +28,14 @@ IF @CID IS NULL
 	RAISERROR ('CustomerID variable @CID cannot be NULL', 11,1)
 	RETURN
 END
+
+/*
+EXEC emilyd61_uspGetCustID
+@??? = @SellFname
+@??? = @SellLname
+@??? = @SellDOB
+@??? = @SID OUTPUT
+*/
 
 IF @SID IS NULL
 	BEGIN
@@ -53,7 +50,11 @@ IF @CID = @SID
 	RAISERROR ('SellerID and CustomerID cannot be the same; sellers cannot review themselves', 11,50001)
 	RETURN
 END
-	
+
+EXEC josiahc_uspGetRatingID
+@ratingName = @RateName,
+@ratingID = @RID OUTPUT
+
 IF @RID IS NULL
 	BEGIN
 	PRINT '@RID IS NULL and will fail on insert statement; process terminated'
@@ -144,6 +145,14 @@ EXEC long27km_uspGetOrderID
 @??? = @DateTime
 @??? = @ORID OUTPUT
 */
+
+IF @ORID IS NULL
+	BEGIN
+	PRINT '@ORID IS NULL and will fail on insert statement; process terminated'
+	RAISERROR ('OrderID variable @ORID cannot be NULL', 11,1)
+	RETURN
+END
+
 EXEC jchou8_uspGetOffering
 @SellFname = @SellFname,
 @SellLname = @SellLname,
@@ -153,13 +162,6 @@ EXEC jchou8_uspGetOffering
 @Start = @OffStart,
 @End = @OffEnd,
 @OffID = @OFID OUTPUT
-
-IF @ORID IS NULL
-	BEGIN
-	PRINT '@ORID IS NULL and will fail on insert statement; process terminated'
-	RAISERROR ('OrderID variable @ORID cannot be NULL', 11,1)
-	RETURN
-END
 
 IF @OFID IS NULL
 	BEGIN
@@ -202,18 +204,7 @@ EXEC emilyd61_uspGetCustID
 @??? = @SellFname
 @??? = @SellLname
 @??? = @SellDOB
-@??? = @SID OUTPUT
-
-Need GetProduct stored procedure
-EXEC emilyd61_uspGetProdID
-@??? = @ProdName
-@??? = @PID OUTPUT
-*/
-
-EXEC emilyd61_uspGetAddressID
-@Street = @StAddress,
-@Zipcode = @Zip,
-@Add_ID = @AID OUTPUT
+@??? = @SID OUTPUT */
 
 IF @SID IS NULL
 	BEGIN
@@ -222,12 +213,24 @@ IF @SID IS NULL
 	RETURN
 END
 
+/*
+Need GetProduct stored procedure
+EXEC emilyd61_uspGetProdID
+@??? = @ProdName
+@??? = @PID OUTPUT
+*/
+
 IF @PID IS NULL
 	BEGIN
 	PRINT '@PID IS NULL and will fail on insert statement; process terminated'
 	RAISERROR ('ProductID variable @PID cannot be NULL', 11,1)
 	RETURN
 END
+
+EXEC emilyd61_uspGetAddressID
+@Street = @StAddress,
+@Zipcode = @Zip,
+@Add_ID = @AID OUTPUT
 
 IF @AID IS NULL
 	BEGIN
