@@ -48,3 +48,49 @@ BEGIN
 	RETURN
 END
 GO
+
+CREATE PROCEDURE emilyd61_uspGetCustID
+@Fname varchar(50),
+@Lname varchar(50),
+@Dob DATE,
+@CustID INT OUTPUT
+AS
+SET @CustID = (SELECT CustomerID FROM tblCustomer WHERE FirstName = @Fname AND LastName = @Lname AND DOB = @Dob)
+IF @CustID is null
+BEGIN
+	RAISERROR('@CustID cannot be NULL!!!', 11, 1)
+	RETURN
+END
+GO
+
+CREATE PROCEDURE emilyd61_uspGetReviewID
+@ReTitle varchar(100),
+@ReID INT OUTPUT
+AS
+SET @ReID = (SELECT ReviewID FROM tblReview WHERE ReviewTitle = @ReTitle)
+
+DECLARE @CustID INT
+DECLARE @RateID INT
+
+SET @CustID = (SELECT CustomerID FROM tblCustomer)
+SET @RateID = (SELECT RatingID FROM tblRating)
+
+IF @ReID is null
+BEGIN
+	RAISERROR('@ReID cannot be NULL!!!', 11, 1)
+	RETURN
+END
+
+CREATE PROCEDURE emilyd61_uspGetProdID
+@ProdName varchar(100),
+@ProdID INT OUTPUT
+AS
+SET @ProdID = (SELECT ProductID FROM tblProduct WHERE ProductName = @ProdName)
+
+DECLARE @ProdTypeID INT = (SELECT ProductTypeID FROM tblProductType)
+
+IF @ProdID is null
+BEGIN
+	RAISERROR('@ProdID cannot be NULL!!!', 11, 1)
+	RETURN
+END
