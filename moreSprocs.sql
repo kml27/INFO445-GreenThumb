@@ -157,3 +157,18 @@ BEGIN
 	RAISERROR('@ProdID cannot be NULL!!!', 11, 1)
 	RETURN
 END
+
+ALTER PROC emilyd61_uspGetAddressID
+@Street varchar (100),
+@City varchar (100),
+@State varchar (100),
+@Zipcode int,
+@Address_ID int OUTPUT
+AS
+SET @Address_ID = (SELECT AddressID FROM tblAddress 
+				WHERE StreetAddress = @Street AND City = @City AND [State] = @State AND Zip = @Zipcode)
+IF @Address_ID IS NULL
+BEGIN PRINT '@Add_ID cannot be null. ERROR.'
+	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
+	RETURN
+	END
