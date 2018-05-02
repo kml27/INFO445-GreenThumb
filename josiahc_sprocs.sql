@@ -54,7 +54,12 @@ GO
 
 ALTER PROCEDURE josiahc_uspInsertDetailType
 @name VARCHAR(50),
-@desc VARCHAR(500)
+@desc VARCHAR(500),
+@sellFname VARCHAR(100),
+@sellLname VARCHAR(100),
+@sellDOB DATE,
+@offeringName VARCHAR(50),
+@offeringStart DATE
 AS
 IF @name IS NULL BEGIN
 	RAISERROR('DetailTypeName (@name) cannot be null', 11, 1)
@@ -100,7 +105,13 @@ IF @UID IS NULL BEGIN
 	RETURN
 END
 
--- get offeringID goes here
+EXEC jchou8_uspGetOffering
+@SellFname = @sellFName,
+@SellLname = @sellLname,
+@SellDOB = @sellDOB,
+@Name = @offeringName,
+@Start = @offeringStart,
+@OffID = @OID OUTPUT
 
 BEGIN TRAN T1
 	INSERT INTO tblDetail(DetailTypeID, OfferingID, UnitID, DetailDesc)
