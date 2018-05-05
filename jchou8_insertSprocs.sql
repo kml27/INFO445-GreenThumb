@@ -14,13 +14,11 @@ DECLARE @CID INT
 DECLARE @SID INT
 DECLARE @RID INT
 
-/* Need GetCustomer stored procedure
-
 EXEC emilyd61_uspGetCustID
-@??? = @CustFname
-@??? = @CustLname
-@??? = @CustDOB
-@??? = @CID OUTPUT */
+@Fname = @CustFname
+@Lname = @CustLname
+@Dob = @CustDOB
+@CustID = @CID OUTPUT
 
 IF @CID IS NULL
 	BEGIN
@@ -29,13 +27,11 @@ IF @CID IS NULL
 	RETURN
 END
 
-/*
 EXEC emilyd61_uspGetCustID
-@??? = @SellFname
-@??? = @SellLname
-@??? = @SellDOB
-@??? = @SID OUTPUT
-*/
+@Fname = @SellFname
+@Lname = @SellLname
+@Dob = @SellDOB
+@CustID = @SID OUTPUT
 
 IF @SID IS NULL
 	BEGIN
@@ -92,14 +88,12 @@ CREATE PROCEDURE jchou8_uspInsertOrder
 @DateTime datetime
 AS
 DECLARE @CID INT
-/* Need GetCustomer stored procedure
 
 EXEC emilyd61_uspGetCustID
-@??? = @CustFname
-@??? = @CustLname
-@??? = @CustDOB
-@??? = @CID OUTPUT
-*/
+@Fname = @CustFname
+@Lname = @CustLname
+@Dob = @CustDOB
+@CustID = @CID OUTPUT
 
 IF @CID IS NULL
 	BEGIN
@@ -134,15 +128,12 @@ AS
 DECLARE @ORID INT
 DECLARE @OFID INT
 
-/* Need GetOrder stored procedure
-
-EXEC long27km_uspGetOrderID
-@??? = @CustFname
-@??? = @CustLname
-@??? = @CustDOB
-@??? = @DateTime
-@??? = @ORID OUTPUT
-*/
+EXEC long27km_GetOrderID
+@FName = @CustFname,
+@Lname = @CustLname,
+@DOB = @CustDOB
+@OrderDateTime = @DateTime,
+@OrderID = @ORID OUTPUT
 
 IF @ORID IS NULL
 	BEGIN
@@ -194,13 +185,12 @@ AS
 DECLARE @SID INT
 DECLARE @PID INT
 DECLARE @AID INT
-/* Need GetCustomer stored procedure
 
 EXEC emilyd61_uspGetCustID
-@??? = @SellFname
-@??? = @SellLname
-@??? = @SellDOB
-@??? = @SID OUTPUT */
+@Fname = @SellFname
+@Lname = @SellLname
+@Dob = @SellDOB
+@CustID = @SID OUTPUT
 
 IF @SID IS NULL
 	BEGIN
@@ -209,12 +199,9 @@ IF @SID IS NULL
 	RETURN
 END
 
-/*
-Need GetProduct stored procedure
 EXEC emilyd61_uspGetProdID
-@??? = @ProdName
-@??? = @PID OUTPUT
-*/
+@ProdName = @ProdName
+@ProdID = @PID OUTPUT
 
 IF @PID IS NULL
 	BEGIN
@@ -246,8 +233,7 @@ ELSE
 GO
 
 
-/* Inserts an offering with given seller information, product information, street address, zipcode, 
-offering price, name, description, start date, and end date. */
+/* Gets an offering ID given seller info, offering name, and start date. */
 CREATE PROCEDURE jchou8_uspGetOffering
 @SellFname varchar(100),
 @SellLname varchar(100),
@@ -259,13 +245,11 @@ AS
 DECLARE @SID INT
 DECLARE @PID INT
 
-/* Need GetCustomer stored procedure
 EXEC emilyd61_uspGetCustID
-@??? = @SellFname
-@??? = @SellLname
-@??? = @SellDOB
-@??? = @SID OUTPUT
-*/
+@Fname = @SellFname
+@Lname = @SellLname
+@Dob = @SellDOB
+@CustID = @SID OUTPUT
 
 SET @OffID = (
 	SELECT OfferingID FROM tblOffering 
