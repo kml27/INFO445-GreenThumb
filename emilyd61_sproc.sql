@@ -39,15 +39,12 @@ SET IDENTITY_INSERT tblCustomer OFF;
 CREATE PROC emilyd61_uspGetProductTypeID
 @ProdTypeName varchar(100),
 @ProdTypeDesc varchar(100),
-@PrdoTypeID int OUTPUT
+@ProdTypeID int OUTPUT
 AS
 SET @ProdTypeID = (SELECT ProductTypeID FROM tblProductType 
 					WHERE ProductTypeName LIKE '%'+@ProdTypeName+'%')
-IF @PrdoTypeID IS NULL
-BEGIN PRINT '@PrdoTypeID cannot be null. ERROR.'
-	RAISERROR ('@PrdoTypeID is unique key, it cannot be null.',11,1)
-	RETURN
-	END
+
+GO
 
 CREATE PROCEDURE emilyd61_uspGetCustID
 @Fname varchar(50),
@@ -56,30 +53,37 @@ CREATE PROCEDURE emilyd61_uspGetCustID
 @CustID INT OUTPUT
 AS
 SET @CustID = (SELECT CustomerID FROM tblCustomer WHERE FirstName = @Fname AND LastName = @Lname AND DOB = @Dob)
-IF @CustID is null
-BEGIN
-	RAISERROR('@CustID cannot be NULL!!!', 11, 1)
-	RETURN
-END
+
 GO
 
 CREATE PROCEDURE emilyd61_uspGetReviewID
 @ReTitle varchar(100),
+@CustFname varchar(100),
+@CustLname varchar(100),
+@CustDOB DATE,
+@SellFname varchar(100),
+@SellLname varchar(100),
+@SellDOB DATE,
 @ReID INT OUTPUT
 AS
-SET @ReID = (SELECT ReviewID FROM tblReview WHERE ReviewTitle = @ReTitle)
+DECLARE @CID INT
+DECLARE @SID INT
 
-DECLARE @CustID INT
-DECLARE @RateID INT
+EXEC emilyd61_uspGetCustID
+@Fname = @CustFname,
+@Lname = @CustLname,
+@Dob = @CustDOB,
+@CustID = @CID OUTPUT
 
-SET @CustID = (SELECT CustomerID FROM tblCustomer)
-SET @RateID = (SELECT RatingID FROM tblRating)
+EXEC emilyd61_uspGetCustID
+@Fname = @SellFname,
+@Lname = @SellLname,
+@Dob = @SellDOB,
+@CustID = @SID OUTPUT
 
-IF @ReID is null
-BEGIN
-	RAISERROR('@ReID cannot be NULL!!!', 11, 1)
-	RETURN
-END
+SET @ReID = (SELECT ReviewID FROM tblReview WHERE ReviewTitle = @ReTitle AND CustomerID = @CID AND SellerID = @SID)
+
+GO
 
 CREATE PROCEDURE emilyd61_uspGetProdID
 @ProdName varchar(100),
@@ -87,13 +91,7 @@ CREATE PROCEDURE emilyd61_uspGetProdID
 AS
 SET @ProdID = (SELECT ProductID FROM tblProduct WHERE ProductName = @ProdName)
 
-DECLARE @ProdTypeID INT = (SELECT ProductTypeID FROM tblProductType)
-
-IF @ProdID is null
-BEGIN
-	RAISERROR('@ProdID cannot be NULL!!!', 11, 1)
-	RETURN
-END
+GO
 
 -- CREATE PROC to get address id
 ALTER PROC emilyd61_uspGetAddressID
@@ -105,11 +103,8 @@ ALTER PROC emilyd61_uspGetAddressID
 AS
 SET @Address_ID = (SELECT AddressID FROM tblAddress 
 				WHERE StreetAddress = @Street AND City = @City AND [State] = @State AND Zip = @Zipcode)
-IF @Address_ID IS NULL
-BEGIN PRINT '@Add_ID cannot be null. ERROR.'
-	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
-	RETURN
-	END
+
+GO
 
 /* No under 18 years old seller*/
 CREATE FUNCTION fn_No18Seller()

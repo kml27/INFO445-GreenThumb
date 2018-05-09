@@ -6,11 +6,7 @@ CREATE PROCEDURE josiahc_uspGetDetailTypeID
 @detailTypeID INT OUTPUT
 AS
 SET @detailTypeID = (SELECT DetailTypeID FROM tblDetailType WHERE DetailTypeName = @typeName)
-IF @detailTypeID IS NULL
-BEGIN
-	RAISERROR('the specified detailType does not exist', 11, 1)
-	RETURN
-END
+
 GO
 
 CREATE PROCEDURE josiahc_uspGetUnitID
@@ -18,11 +14,7 @@ CREATE PROCEDURE josiahc_uspGetUnitID
 @unitID INT OUTPUT
 AS
 SET @unitID = (SELECT UnitID FROM tblUnit WHERE UnitName = @unitName)
-IF @unitID IS NULL
-BEGIN
-	RAISERROR('the specified unit does not exist', 11, 1)
-	RETURN
-END
+
 GO
 
 CREATE PROCEDURE josiahc_uspGetRatingID
@@ -30,11 +22,7 @@ CREATE PROCEDURE josiahc_uspGetRatingID
 @ratingID INT OUTPUT
 AS
 SET @ratingID = (SELECT RatingID FROM tblRating WHERE RatingName = @ratingName)
-IF @ratingID IS NULL
-BEGIN
-	RAISERROR('the specified rating does not exist', 11, 1)
-	RETURN
-END
+
 GO
 
 ALTER PROCEDURE josiahc_uspInsertDetailType
