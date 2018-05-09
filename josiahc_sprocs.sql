@@ -37,21 +37,6 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE jchou8_uspGetCustTypeID
-@TypeName varchar(250),
-@CTID INT OUTPUT
-AS
-SET @CTID = (SELECT CustTypeID FROM tblCustomerType WHERE CustTypeName = @TypeName)
-IF @CTID IS NULL
-BEGIN
-	RAISERROR('The specified customer type does not exist.', 11, 1)
-	RETURN
-END
-GO
-
-USE GREEN_THUMB
-GO
-
 ALTER PROCEDURE josiahc_uspInsertDetailType
 @name VARCHAR(50),
 @desc VARCHAR(500),
@@ -121,65 +106,3 @@ BEGIN TRAN T1
 	ELSE
 		COMMIT TRAN T1
 GO
-
--- More stored procedure
-CREATE PROCEDURE emilyd61_uspGetCustID
-@Fname varchar(50),
-@Lname varchar(50),
-@Dob DATE,
-@CustID INT OUTPUT
-AS
-SET @CustID = (SELECT CustomerID FROM tblCustomer WHERE FirstName = @Fname AND LastName = @Lname AND DOB = @Dob)
-IF @CustID is null
-BEGIN
-	RAISERROR('@CustID cannot be NULL!!!', 11, 1)
-	RETURN
-END
-GO
-
-CREATE PROCEDURE emilyd61_uspGetReviewID
-@ReTitle varchar(100),
-@ReID INT OUTPUT
-AS
-SET @ReID = (SELECT ReviewID FROM tblReview WHERE ReviewTitle = @ReTitle)
-
-DECLARE @CustID INT
-DECLARE @RateID INT
-
-SET @CustID = (SELECT CustomerID FROM tblCustomer)
-SET @RateID = (SELECT RatingID FROM tblRating)
-
-IF @ReID is null
-BEGIN
-	RAISERROR('@ReID cannot be NULL!!!', 11, 1)
-	RETURN
-END
-
-CREATE PROCEDURE emilyd61_uspGetProdID
-@ProdName varchar(100),
-@ProdID INT OUTPUT
-AS
-SET @ProdID = (SELECT ProductID FROM tblProduct WHERE ProductName = @ProdName)
-
-DECLARE @ProdTypeID INT = (SELECT ProductTypeID FROM tblProductType)
-
-IF @ProdID is null
-BEGIN
-	RAISERROR('@ProdID cannot be NULL!!!', 11, 1)
-	RETURN
-END
-
-ALTER PROC emilyd61_uspGetAddressID
-@Street varchar (100),
-@City varchar (100),
-@State varchar (100),
-@Zipcode int,
-@Address_ID int OUTPUT
-AS
-SET @Address_ID = (SELECT AddressID FROM tblAddress 
-				WHERE StreetAddress = @Street AND City = @City AND [State] = @State AND Zip = @Zipcode)
-IF @Address_ID IS NULL
-BEGIN PRINT '@Add_ID cannot be null. ERROR.'
-	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
-	RETURN
-	END
