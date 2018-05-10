@@ -36,15 +36,45 @@ INSERT INTO tblCustomer (CustomerID, FirstName, LastName, Email, PhoneNumber, DO
 SET IDENTITY_INSERT tblCustomer OFF;
 
 -- get Product Type
-CREATE PROC emilyd61_uspGetProductTypeID
+ALTER /*CREATE*/ PROC emilyd61_uspGetProductTypeID
 @ProdTypeName varchar(100),
-@ProdTypeDesc varchar(100),
 @ProdTypeID int OUTPUT
 AS
 SET @ProdTypeID = (SELECT ProductTypeID FROM tblProductType 
 					WHERE ProductTypeName LIKE '%'+@ProdTypeName+'%')
+IF @ProdTypeID IS NULL
+	BEGIN 
+		RAISERROR ('@ProdTypeName not found',11,1)
+		RETURN
+	END
 
-GO
+-- create customer type 
+CREATE PROC emilyd61_uspGetCustTypeID
+@CustTypeName varchar(100),
+@CustTypeDescr varchar(100),
+@CustTID int output
+AS 
+SET @CustTID = (SELECT CustTypeID FROM tblCustomerType WHERE CustTypeName = @CustTypeName)
+IF @CustTID IS NULL
+BEGIN RAISERROR ('@CustomerType not found',11,1)
+RETURN END
+
+INSERT INTO tblCustomerType (CustTypeName, CustTypeDesc)
+SELECT [CustomerType], [CustTypeDescr]
+FROM RAW_CUSTTYPE
+
+DELETE FROM workingCustCustType
+CREATE TABLE workingCustCustType (
+CustCustTypeID INT IDENTITY(1,1) PRIMARY KEY not null,
+CustFname varchar(250) not null,
+CustLname varchar(250) not null,
+StartDate DATE,
+EndDate DATE
+)
+
+insert into workingCustCustType (CustFname, CustLname)
+select [FirstName], [LastName]
+from tblCustomer
 
 CREATE PROCEDURE emilyd61_uspGetCustID
 @Fname varchar(50),
@@ -94,17 +124,18 @@ SET @ProdID = (SELECT ProductID FROM tblProduct WHERE ProductName = @ProdName)
 GO
 
 -- CREATE PROC to get address id
-ALTER PROC emilyd61_uspGetAddressID
+CREATE PROC emilyd61_uspGetAddressID
 @Street varchar (100),
-@City varchar (100),
-@State varchar (100),
 @Zipcode int,
-@Address_ID int OUTPUT
+@Add_ID int OUTPUT
 AS
-SET @Address_ID = (SELECT AddressID FROM tblAddress 
-				WHERE StreetAddress = @Street AND City = @City AND [State] = @State AND Zip = @Zipcode)
-
-GO
+SET @Add_ID = (SELECT AddressID FROM tblAddress 
+				WHERE StreetAddress = @Street AND Zip = @Zipcode)
+IF @Add_ID IS NULL
+BEGIN PRINT '@Add_ID cannot be null. ERROR.'
+	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
+	RETURN
+	END
 
 /* No under 18 years old seller*/
 CREATE FUNCTION fn_No18Seller()
@@ -125,3 +156,43 @@ ALTER TABLE tblOffering
 ADD CONSTRAINT CK_No18Seller
 CHECK (dbo.fn_No18Seller() = 0)
 
+-- insert customer info
+DECLARE @Run INT = (SELECT COUNT(*) FROM [WorkingCustomerData])
+DECLARE @ID INT
+DECLARE @CID INT
+DECLARE @FName varchar(50)
+DECLARE @LName varchar(50)
+DECLARE @PNum varchar(50)
+DECLARE @EMAIL varchar(100)
+DECLARE @D_OB date
+DECLARE @AddID INT
+DECLARE @ST varchar(50)
+DECLARE @ZipC int
+
+WHILE @Run > 0
+BEGIN
+SET @ID = (SELECT MIN(CustomerID) FROM [WorkingCustomerData])
+SET @FName = (SELECT [CustomerFname] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
+SET @LName = (SELECT [CustomerLname] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
+SET @PNum = (SELECT [PhoneNum] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
+SET @EMAIL = (SELECT [Email] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
+SET @D_OB = (SELECT [DateOfBirth] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
+SET @AddID = (SELECT AddressID FROM tblAddress WHERE AddressID = @AddID)
+
+EXEC uspGetAddressID
+@Street = @ST,
+@Zipcode = @ZipC,
+@Add_ID = @AddID OUTPUT
+
+BEGIN TRAN G1
+INSERT INTO tblCustomer (FirstName, LastName, PhoneNumber, Email, DOB, AddressID)
+VALUES (@FName, @LName, @PNum, @EMAIL, @D_OB, @AddID)
+SET @CID = (SELECT SCOPE_IDENTITY())
+
+IF @@ERROR <> 0
+ROLLBACK TRAN G1
+ELSE
+COMMIT TRAN G1
+
+SET @Run = @Run -1
+END

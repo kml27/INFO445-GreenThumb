@@ -2,6 +2,78 @@ USE GREEN_THUMB;
 
 GO
 
+ALTER /*CREATE*/ PROC long27km_InsertProduct
+@ProductTypeName varchar(50),
+@ProductName varchar(50),
+@ProductDesc varchar(50)
+AS
+BEGIN
+	DECLARE @P_ID INT;
+
+	EXEC emilyd61_uspGetProductTypeID @ProdTypeName = @ProductTypeName, @ProdTypeID = @P_ID OUTPUT;
+
+	IF @P_ID IS NULL
+	BEGIN
+		RAISERROR ('ProductTypeID not found!', 11, 1);
+		RETURN
+	END
+
+	BEGIN TRAN
+
+	INSERT INTO tblProduct (ProductName, ProductDesc, ProductTypeID) VALUES (@ProductName, @ProductDesc, @P_ID);
+	
+	IF @@ERROR <> 0
+		ROLLBACK TRAN
+	ELSE
+		COMMIT TRAN
+END
+
+GO
+
+CREATE TABLE WorkingProduct(
+	ProductID INT PRIMARY KEY IDENTITY(1,1),
+	ProductName varchar(100),
+	ProductDesc varchar(100)
+)
+
+DELETE FROM WorkingProduct;
+
+INSERT INTO WorkingProduct (ProductName, ProductDesc) SELECT ProductName, ProductDescr 
+	FROM RAW_PRODUCT;
+
+
+SELECT * FROM WorkingProduct;
+
+DECLARE @ROW_COUNT INT = (SELECT COUNT(*) FROM WorkingPRODUCT);
+
+WHILE @ROW_COUNT > 0
+BEGIN
+
+	DECLARE @TYPE INT = (SELECT (RAND()-0.0001)*10);
+	
+	DECLARE @TYPE_NAME varchar(50) = (SELECT CASE 
+		WHEN @TYPE < 3 THEN 'Plant' 
+		WHEN @TYPE > 6 THEN 'Seed'
+		ELSE
+			'Greens'
+		END)
+
+	PRINT @TYPE_NAME
+
+	DECLARE @P_ID INT = (SELECT MIN(ProductID) FROM WorkingProduct)
+
+	DECLARE @ProductName varchar(100) = (SELECT ProductName FROM WorkingProduct WHERE ProductID = @P_ID);
+
+	DECLARE @ProductDesc varchar(100) = (SELECT ProductDesc FROM WorkingProduct WHERE ProductID = @P_ID);
+
+	EXEC long27km_InsertProduct @ProductTypeName = @TYPE_NAME, @ProductName = @ProductName, @ProductDesc = @ProductDesc
+
+	DELETE FROM WorkingProduct WHERE ProductID = @P_ID;
+
+	SET @ROW_COUNT = @ROW_COUNT - 1;
+END
+
+
 CREATE PROC long27km_wrapper_emilyd61_uspGetCustTypeID 
 @CTName varchar(50),
 @wT_ID INT OUTPUT
