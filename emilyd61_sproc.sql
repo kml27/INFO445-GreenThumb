@@ -146,7 +146,7 @@ DECLARE @Ret INT = 0
 IF EXISTS (SELECT *
 			FROM tblOffering O JOIN tblCustomer C ON O.SellerID = C.CustomerID
 							JOIN tblProduct P ON O.ProductID = P.ProductID
-							AND C.DOB > (SELECT GetDate() - (365.25 * 18)))
+			WHERE C.DOB < (SELECT GetDate() - (365.25 * 18)))
 SET @Ret = 1
 RETURN @Ret
 END
@@ -156,8 +156,32 @@ ALTER TABLE tblOffering
 ADD CONSTRAINT CK_No18Seller
 CHECK (dbo.fn_No18Seller() = 0)
 
--- insert customer info
-DECLARE @Run INT = (SELECT COUNT(*) FROM [WorkingCustomerData])
+/*All the total price in each order should at least $10.00 (min pay is 10.00)*/
+CREATE FUNCTION fn_minOrderPay10()
+RETURNS INT
+AS
+BEGIN
+DECLARE @Ret INT = 0
+IF EXISTS (SELECT *
+			FROM tblOrder ORD JOIN tblLineItem L ON ORD.OrderID = L.OrderID
+			JOIN tblOffering O ON L.OfferingID = O.OfferingID
+			GROUP BY ORD.OrderID
+			HAVING SUM(O.Price) < 10
+)
+SET @Ret = 1
+RETURN @Ret
+END
+GO
+
+ALTER TABLE tblOrder
+ADD CONSTRAINT CK_minPayLessThan10
+CHECK (dbo.fn_minOrderPay10() = 0)
+
+-- insert customer info from RAW_DATA
+CREATE PROCEDURE emilyd61_uspInsertCustWapperfromWorkingData
+@Run INT
+AS
+DECLARE @NUM INT = (SELECT COUNT(*) FROM [WorkingCustomerData])
 DECLARE @ID INT
 DECLARE @CID INT
 DECLARE @FName varchar(50)
@@ -179,10 +203,10 @@ SET @EMAIL = (SELECT [Email] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
 SET @D_OB = (SELECT [DateOfBirth] FROM [WorkingCustomerData] WHERE CustomerID = @ID)
 SET @AddID = (SELECT AddressID FROM tblAddress WHERE AddressID = @AddID)
 
-EXEC uspGetAddressID
+EXEC emilyd61_uspGetAddressID
 @Street = @ST,
 @Zipcode = @ZipC,
-@Add_ID = @AddID OUTPUT
+@Address_ID = @AddID
 
 BEGIN TRAN G1
 INSERT INTO tblCustomer (FirstName, LastName, PhoneNumber, Email, DOB, AddressID)
