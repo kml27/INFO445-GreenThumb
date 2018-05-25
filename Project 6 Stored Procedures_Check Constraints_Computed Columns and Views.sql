@@ -3,19 +3,37 @@ USE GREEN_THUMB
 GO
 /*1) Stored procedure*/
 -- Emily Ding
--- CREATE PROC to get address id with error-handling
-CREATE PROC emilyd61_uspGetAddressID
-@Street varchar (100),
-@Zipcode int,
-@Add_ID int OUTPUT
+-- insert an order by get the exist CustomerID
+CREATE PROCEDURE emilyd61_populateOrder
+@F_Name varchar(50),
+@L_Name varchar(50),
+@D_OB DATE,
+@DTime DATETIME,
+@Total INT
 AS
-SET @Add_ID = (SELECT AddressID FROM tblAddress 
-				WHERE StreetAddress = @Street AND Zip = @Zipcode)
-IF @Add_ID IS NULL
-BEGIN PRINT '@Add_ID cannot be null. ERROR.'
-	RAISERROR ('@Add_ID is unique key, it cannot be null.',11,1)
-	RETURN
-	END
+DECLARE @CID INT
+
+EXEC emilyd61_uspGetCustID
+@Fname = @F_Name,
+@Lname = @L_Name,
+@Dob = @D_OB,
+@CustID = @CID OUTPUT
+
+IF @CID IS NULL
+ BEGIN
+ PRINT '@CID is NULL and this is not good'
+ RAISERROR ('CustomerID populating @CID was not found', 11,1)
+ RETURN 
+ END
+
+BEGIN TRAN G1
+INSERT INTO tblORDER (CustomerID, [DateTime], Total)
+VALUES (@CID, @DTime, @Total)
+
+IF @@ERROR <> 0
+ ROLLBACK TRAN G1
+ELSE
+ COMMIT TRAN G1
 
 -- Insert customer information from RAW_DATA which converted as WorkingCustomerData
 CREATE PROCEDURE emilyd61_uspInsertCustWapperfromWorkingData
@@ -60,7 +78,6 @@ COMMIT TRAN G1
 
 SET @Run = @Run -1
 END
-
 
 
 
