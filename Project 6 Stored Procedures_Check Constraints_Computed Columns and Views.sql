@@ -8,8 +8,7 @@ CREATE PROCEDURE emilyd61_populateOrder
 @F_Name varchar(50),
 @L_Name varchar(50),
 @D_OB DATE,
-@DTime DATETIME,
-@Total INT
+@DTime DATETIME
 AS
 DECLARE @CID INT
 
@@ -27,8 +26,8 @@ IF @CID IS NULL
  END
 
 BEGIN TRAN G1
-INSERT INTO tblORDER (CustomerID, [DateTime], Total)
-VALUES (@CID, @DTime, @Total)
+INSERT INTO tblORDER (CustomerID, OrderDateTime)
+VALUES (@CID, @DTime)
 
 IF @@ERROR <> 0
  ROLLBACK TRAN G1
