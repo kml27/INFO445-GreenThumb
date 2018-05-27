@@ -12,7 +12,6 @@ VALUES ('0.5 stars'),
 
 GO
 
-
 /*CREATE*/ ALTER PROCEDURE jchou8_uspInsertOfferingWrapper
 @Run INT
 AS
