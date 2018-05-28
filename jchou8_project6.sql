@@ -22,6 +22,16 @@ IF @CID IS NULL
 	RETURN
 END
 
+BEGIN TRAN T1
+INSERT INTO tblOrder(CustomerID, OrderDateTime)
+VALUES (@CID, @DateTime)
+IF @@ERROR <> 0
+	ROLLBACK TRAN T1
+ELSE 
+	SET @ORID = (SELECT SCOPE_IDENTITY())
+	COMMIT TRAN T1
+GO
+
 /* Insert a simulated order with random offerings */
 CREATE PROCEDURE jchou8_uspSimulateOrder
 @Run INT
