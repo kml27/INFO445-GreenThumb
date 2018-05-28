@@ -140,10 +140,10 @@ ADD CustAge AS (dbo.fn_customerAge(CustomerID))
 
 /*Sell Tax rate: Seattle, it's 10.1% */
 ALTER FUNCTION fn_SalesTax(@OffID INT)
-RETURNS INT
+RETURNS Money
 AS
 BEGIN
-	DECLARE @Ret INT
+	DECLARE @Ret Money
 	SET @Ret = (SELECT Price * .101 AS TaxFee
 				FROM tblOffering WHERE OfferingID = @OffID)
 RETURN @Ret
