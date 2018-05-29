@@ -60,7 +60,7 @@ BEGIN TRAN T1
 GO
 
 -- create wrapper
-CREATE PROCEDURE josiahc_uspSyntheticDetail
+ALTER PROCEDURE josiahc_uspSyntheticDetail
 @numberOfTimes INT
 AS
 
@@ -85,7 +85,7 @@ WHILE @numberOfTimes > 0 BEGIN
 	SET @sellLnameSynth = (SELECT C.LastName FROM tblOffering O JOIN tblCustomer C ON C.CustomerID = O.SellerID WHERE OfferingID = @randID)
 	SET @sellDOBSynth = (SELECT C.DOB FROM tblOffering O JOIN tblCustomer C ON C.CustomerID = O.SellerID WHERE OfferingID = @randID)
 
-	SET @randDT = CAST((SELECT RAND() * (SELECT MAX(DetailTypeID) FROM tblDetailType WHERE DetailTypeDesc IS NOT NULL) + 1) AS INT)
+	SET @randDT = CAST((SELECT RAND() * (SELECT MAX(DetailTypeID) FROM tblDetailType WHERE DetailTypeName != 'Quantity' AND DetailTypeDesc IS NOT NULL) + 1) AS INT)
 	SET @detailTypeNameSynth = (SELECT DetailTypeName FROM tblDetailType WHERE DetailTypeID = @randDT)
 	SET @unitSynth = 
 		(CASE @detailTypeNameSynth
