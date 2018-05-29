@@ -616,6 +616,45 @@ GO
 
 -- Joseph Chou
 /* Stored procedures */
+/* Inserts an order given customer info and order datetime, then returns the newly inserted order ID */
+/*CREATE*/ ALTER PROCEDURE jchou8_uspInsertAndReturnOrder
+@CustFname varchar(100),
+@CustLname varchar(100),
+@CustDOB date,
+@DateTime datetime,
+@ORID INT OUTPUT
+AS
+DECLARE @CID INT
+
+EXEC emilyd61_uspGetCustID
+@Fname = @CustFname,
+@Lname = @CustLname,
+@Dob = @CustDOB,
+@CustID = @CID OUTPUT
+
+IF @CID IS NULL
+	BEGIN
+	PRINT '@CID IS NULL and will fail on insert statement; process terminated'
+	RAISERROR ('CustomerID variable @CID cannot be NULL', 11,1)
+	RETURN
+END
+
+BEGIN TRAN T1
+
+INSERT INTO tblOrder(CustomerID, OrderDateTime)
+VALUES (@CID, @DateTime)
+
+IF @@ERROR <> 0
+	BEGIN
+		ROLLBACK TRAN T1
+	END
+ELSE 
+	BEGIN
+		SET @ORID = (SELECT SCOPE_IDENTITY())
+		COMMIT TRAN T1
+	END
+GO
+
 /* Given order ID, seller information, and quantity, inserts a line item. */
 ALTER PROCEDURE [dbo].[jchou8_uspInsertLineItemWithID]
 @SellFname varchar(100),
