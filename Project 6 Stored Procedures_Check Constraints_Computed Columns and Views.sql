@@ -610,3 +610,322 @@ GO
  |_.__/|_|  \___|\__,_|_|\_\
 
 */
+
+/*
+
+Ken Long
+
+Each team member must code 2 of each of the following (8 objects per student):
+
+1) Stored procedure
+
+2) Check constraint
+
+3) Computed column
+
+4) Views
+
+As stated in lecture, grading will be based on the student's ability to leverage complex skills presented in lecture and should include the following where appropriate:
+
+* explicit transactions
+
+* Complexity as appropriate: multiple JOINs, GROUP BY, ORDER BY, TOP, RANK, CROSS APPLY
+
+* error-handling
+
+* passing of appropriate  parameters (name values and/or output parameters)
+
+* subqueries
+
+* variables
+*/
+
+ALTER /*CREATE*/ PROC long27km_usp_GetLocalOfferingsBySeller
+@Zip varchar(20),
+@SellerFName varchar(100),
+@SellerLName varchar(100),
+@Offset int,
+@NumResults int
+AS
+BEGIN
+	
+	SELECT * 
+	FROM tblOffering O
+	JOIN tblCustomer S
+	ON S.CustomerID = O.SellerID
+	JOIN tblCustomerCustomerType CCT
+	ON S.CustomerID = CCT.CustomerID
+	JOIN tblCustomerType CT
+	ON CCT.CustTypeID = CT.CustTypeID
+	JOIN tblAddress A
+	ON A.AddressID = O.AddressID
+	WHERE A.Zip = @Zip
+	AND CT.CustTypeName = 'Seller'
+	AND S.FirstName = @SellerFName
+	AND S.LastName = @SellerLName
+	ORDER BY O.StartDate DESC
+	OFFSET (@Offset) ROWS
+	FETCH NEXT (@NumResults) ROWS ONLY;
+END
+
+GO
+
+/*ALTER*/ CREATE PROC long27km_usp_GetMostRecentLocalOfferingsOfProductType
+@CustomerFName varchar(100),
+@CustomerLName varchar(100),
+@DOB DATE,
+@ProdTypeName varchar(100),
+@Offset int,
+@NumResults int
+AS
+BEGIN
+
+	DECLARE @A_ID INT = (SELECT AddressID FROM tblCustomer C WHERE C.FirstName = @CustomerFName AND C.LastName = @CustomerLName AND C.DOB = @DOB) 
+
+	DECLARE @Zip varchar(20) = (SELECT Zip FROM tblAddress WHERE AddressID = @A_ID)
+	
+	SELECT * 
+	FROM tblOffering O
+	JOIN tblAddress A
+	ON A.AddressID = O.AddressID
+	JOIN tblProduct P
+	ON O.ProductID = P.ProductID
+	JOIN tblProductType PT
+	ON PT.ProductTypeID = P.ProductTypeID
+	WHERE A.Zip = @Zip
+	AND PT.ProductTypeName LIKE '%'+@ProdTypeName+'%'
+	ORDER BY O.StartDate DESC
+	OFFSET (@Offset) ROWS
+	FETCH NEXT (@NumResults) ROWS ONLY;
+END
+
+
+GO
+
+SELECT TOP 1 * FROM tblCustomer
+
+EXEC long27km_usp_GetMostRecentLocalOfferingsOfProductType @CustomerFName = 'Eloisa', @CustomerLName = 'Durfey', @DOB = '1985-06-20', @ProdTypeName = 'tool', @Offset = 0, @NumResults = 10
+
+GO
+
+CREATE PROC long27km_usp_GetLocalOfferingsForCustomer
+@CustomerFName varchar(100),
+@CustomerLName varchar(100),
+@DOB Date,
+@Offset int,
+@NumResults int
+AS
+BEGIN
+	
+	DECLARE @A_ID INT = (SELECT AddressID FROM tblCustomer C WHERE C.FirstName = @CustomerFName AND C.LastName = @CustomerLName AND C.DOB = @DOB) 
+
+	DECLARE @Zip varchar(20) = (SELECT Zip FROM tblAddress WHERE AddressID = @A_ID)
+
+	SELECT * 
+	FROM tblOffering O
+	JOIN tblAddress A
+	ON A.AddressID = O.AddressID
+	WHERE A.Zip = @Zip
+
+END
+
+GO 
+
+SELECT TOP 1 * FROM tblCustomer ORDER BY NEWID()
+
+EXEC long27km_usp_GetLocalOfferingsForCustomer @CustomerFName = 'Lawanda', @CustomerLName = 'Ernesto', @DOB = '1999-12-04', @Offset = 0, @NumResults = 10
+
+SELECT COUNT(*) FROM tblCustomer WHERE LEN(PhoneNumber) < 5
+
+SELECT CAST(CAST((RAND()*899)+100 AS INT) AS CHAR(3))+'-'+CAST(CAST((RAND()*899)+100 AS INT) AS CHAR(3))+'-'+CAST(CAST((RAND()*8999)+1000 AS INT) AS CHAR(4))
+
+DECLARE @MAX_CUST INT = (SELECT MAX(CUSTOMERID) FROM tblCustomer)
+
+UPDATE tblCustomer SET PhoneNumber = SUBSTRING(CAST(CAST((RAND()*CustomerID*899/@MAX_CUST)+100 AS INT) AS VARCHAR(30)), 0, 4)+'-'+SUBSTRING(CAST(CAST((RAND()*CustomerID*899/@MAX_CUST)+100 AS INT) AS VARCHAR(30)), 0, 4)+'-'+SUBSTRING(CAST(CAST((RAND()*CustomerID*8999/@MAX_CUST)+1000 AS INT) AS VARCHAR(30)), 0, 5) WHERE LEN(PhoneNumber) < 10 
+/*
+ most popular item, avg price for product based on offering, most purchased product by a given customer
+ 
+ Number purchases for a given customer
+
+ */
+
+ALTER /*CREATE*/ VIEW long27km_vwProductStatsByZip AS
+SELECT AVG(O.Price) AS AvgPriceInZip, CASE WHEN STDEV(O.Price) IS NULL THEN 0 WHEN STDEV(O.Price) IS NOT NULL THEN STDEV(O.Price) END AS StdDevOfPriceInZip, P.ProductName, A.Zip 
+FROM tblOffering O
+JOIN tblAddress A
+ON O.AddressID = A.AddressID
+JOIN tblProduct P
+ON P.ProductID = O.ProductID
+GROUP BY O.ProductID, P.ProductName, A.Zip
+
+SELECT * FROM long27km_vwProductStatsByZip
+
+CREATE VIEW long27km_vwMostPopularProductByZip AS
+SELECT ProductName, NumProdSales, AvgProductPriceForZip, Zip 
+FROM 
+	(SELECT MAX( ProdCount ) AS NumProdSales, ProductID, Zip FROM
+		(SELECT COUNT(P.ProductID) AS ProdCount, P.ProductID, A.Zip 
+		FROM tblProduct P 
+		JOIN tblOffering O 
+		ON P.ProductID = O.ProductID
+		JOIN tblAddress A
+		ON O.AddressID = A.AddressID
+		JOIN tblLineItem LI
+		ON LI.OfferingID = O.OfferingID
+		GROUP BY A.Zip, P.ProductID) SQ_ProdCount
+		GROUP BY Zip, ProductID) SQ_MostPop
+JOIN tblOffering O
+ON O.ProductID = SQ_MostPop.ProductID
+JOIN tblProduct P
+ON P.ProductID = SQ_MostPop.ProductID 
+
+
+GO
+
+SELECT COUNT(P.ProductID) AS ProdCount, P.ProductID, A.Zip 
+		FROM tblProduct P 
+		JOIN tblOffering O 
+		ON P.ProductID = O.ProductID
+		JOIN tblAddress A
+		ON O.AddressID = A.AddressID
+		JOIN tblLineItem LI
+		ON LI.OfferingID = O.OfferingID
+		GROUP BY A.Zip, P.ProductID
+
+GO
+
+CREATE FUNCTION long27km_fnNumberPurchases(@CustID INT)
+RETURNS INT
+AS
+BEGIN
+	DECLARE @TotalNumPurchases INT = 
+	(SELECT COUNT(O.OrderID)
+	FROM tblOrder O
+	WHERE O.CustomerID = @CustID)
+
+	RETURN @TotalNumPurchases
+
+END
+
+GO
+
+ALTER TABLE tblCustomer
+ADD NumPurchases AS (dbo.long27km_fnNumberPurchases(CustomerID))
+
+GO
+
+/*DROP FUNCTION long27km_fnAvgProdPrice*/
+
+ALTER /*CREATE*/ FUNCTION long27km_fnAvgProdPriceForZip(@OfferingID INT)
+RETURNS MONEY
+AS
+BEGIN
+
+	DECLARE @Zip varchar(20) = (SELECT Zip FROM tblAddress A JOIN tblOffering O ON A.AddressID = O.AddressID AND O.OfferingID = @OfferingID)
+	DECLARE @ProductID INT = (SELECT ProductID FROM tblOffering WHERE OfferingID = @OfferingID)
+
+	DECLARE @AvgProdPrice MONEY = 
+	(SELECT AVG(O.Price)
+	FROM tblOffering O
+	JOIN tblAddress A
+	ON O.AddressID = A.AddressID
+	WHERE O.ProductID = @ProductID
+	AND A.Zip = @Zip)
+
+	RETURN @AvgProdPrice
+
+END
+
+GO
+
+/*ALTER TABLE tblOffering
+DROP COLUMN AvgProductPriceForZip
+*/
+
+ALTER TABLE tblOffering
+ADD AvgProductPriceForZip AS (dbo.long27km_fnAvgProdPriceForZip(OfferingID))
+
+SELECT TOP 10 * FROM tblOffering O WHERE O.Price != O.AvgProductPriceForZip
+
+
+GO
+
+SELECT * FROM tblProductType
+
+/*DROP FUNCTION long27km_OnlyBuyLocally*/
+
+CREATE FUNCTION long27km_OnlyBuyGreensLocally()
+RETURNS INT
+AS
+BEGIN
+
+	DECLARE @RESULT INT = 0
+
+	IF EXISTS (SELECT * 
+		FROM tblLineItem LI 
+		JOIN tblOffering O
+		ON LI.OfferingID = O.OfferingID
+		JOIN tblAddress A
+		ON A.AddressID = O.AddressID
+		JOIN tblOrder ORD
+		ON LI.OrderID = ORD.OrderID
+		JOIN tblCustomer C
+		ON C.CustomerID = ORD.CustomerID
+		JOIN tblAddress A2
+		ON A2.AddressID = C.AddressID
+		JOIN tblProduct P
+		ON P.ProductID = O.ProductID
+		JOIN tblProductType PT
+		ON P.ProductTypeID = PT.ProductTypeID
+		WHERE A2.Zip != A.Zip
+		AND (PT.ProductTypeName LIKE '%greens%'
+		OR PT.ProductTypeName LIKE '%pome%'
+		OR PT.ProductTypeName Like '%berry%'))
+		
+		SET @RESULT = 1
+
+
+	RETURN @RESULT
+END
+
+ALTER TABLE tblLineItem WITH NOCHECK
+ADD CONSTRAINT long27km_ckLocalBuyGreens
+CHECK (dbo.long27km_OnlyBuyGreensLocally()=0)
+
+/*ALTER TABLE tblLineItem
+DROP CONSTRAINT long27km_ckLocalBuy*/
+
+
+EXEC jchou8_uspSimulateOrder @Run = 1
+
+SELECT * FROM tblDetailType
+
+CREATE FUNCTION long27km_OnlyBuyAsManyAsAvailable()
+RETURNS INT
+AS
+BEGIN
+
+	DECLARE @RESULT INT = 0
+
+	IF (SELECT SUM(LI.Qty) 
+		FROM tblLineItem LI 
+		JOIN tblOffering O
+		ON LI.OfferingID = O.OfferingID)
+		> 
+		( SELECT DetailDesc 
+			FROM tblDetail D
+			JOIN tblDetailType DT
+			ON D.DetailTypeID = DT.DetailTypeID
+			WHERE DT.DetailTypeName='Quantity') 
+		
+		SET @RESULT = 1
+
+
+	RETURN @RESULT
+END
+
+ALTER TABLE tblLineItem WITH NOCHECK
+ADD CONSTRAINT long27km_ckOnlyAvailable
+CHECK (dbo.long27km_OnlyBuyAsManyAsAvailable()=0)
+
+SELECT * FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity') SQ WHERE SQ.Qty < 5
