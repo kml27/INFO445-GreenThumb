@@ -33,8 +33,10 @@ VALUES (@CID, @DTime)
 IF @@ERROR <> 0
  ROLLBACK TRAN G1
 ELSE 
+BEGIN
  SET @OrderID = (SELECT SCOPE_IDENTITY())
  COMMIT TRAN T1
+END
 GO
 
 -- Insert customer information from RAW_DATA which converted as WorkingCustomerData
