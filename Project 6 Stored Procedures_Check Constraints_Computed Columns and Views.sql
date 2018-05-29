@@ -954,6 +954,7 @@ As stated in lecture, grading will be based on the student's ability to leverage
 * variables
 */
 
+/*store procedure: get local offering by seller*/
 ALTER /*CREATE*/ PROC long27km_usp_GetLocalOfferingsBySeller
 @Zip varchar(20),
 @SellerFName varchar(100),
@@ -984,6 +985,7 @@ END
 
 GO
 
+/*create a store procedure: get most recent local offering of product type*/
 /*ALTER*/ CREATE PROC long27km_usp_GetMostRecentLocalOfferingsOfProductType
 @CustomerFName varchar(100),
 @CustomerLName varchar(100),
@@ -1022,6 +1024,7 @@ EXEC long27km_usp_GetMostRecentLocalOfferingsOfProductType @CustomerFName = 'Elo
 
 GO
 
+/*create a store procedure getthe offering for customer*/
 CREATE PROC long27km_usp_GetLocalOfferingsForCustomer
 @CustomerFName varchar(100),
 @CustomerLName varchar(100),
@@ -1063,6 +1066,7 @@ UPDATE tblCustomer SET PhoneNumber = SUBSTRING(CAST(CAST((RAND()*CustomerID*899/
 
  */
 
+ /*a view for average price for zipcode*/
 ALTER /*CREATE*/ VIEW long27km_vwProductStatsByZip AS
 SELECT AVG(O.Price) AS AvgPriceInZip, CASE WHEN STDEV(O.Price) IS NULL THEN 0 WHEN STDEV(O.Price) IS NOT NULL THEN STDEV(O.Price) END AS StdDevOfPriceInZip, P.ProductName, A.Zip 
 FROM tblOffering O
@@ -1074,6 +1078,7 @@ GROUP BY O.ProductID, P.ProductName, A.Zip
 
 SELECT * FROM long27km_vwProductStatsByZip
 
+/*a view for the most popular product by zipcode*/
 CREATE VIEW long27km_vwMostPopularProductByZip AS
 SELECT ProductName, NumProdSales, AvgProductPriceForZip, Zip 
 FROM 
@@ -1108,6 +1113,7 @@ SELECT COUNT(P.ProductID) AS ProdCount, P.ProductID, A.Zip
 
 GO
 
+/*computed column for total purchased number in customer table*/
 CREATE FUNCTION long27km_fnNumberPurchases(@CustID INT)
 RETURNS INT
 AS
@@ -1122,10 +1128,7 @@ BEGIN
 ALTER TABLE tblCustomer
 ADD NumPurchases AS (dbo.long27km_fnNumberPurchases(CustomerID))
 
-GO
-
 /*DROP FUNCTION long27km_fnAvgProdPrice*/
-
 ALTER /*CREATE*/ FUNCTION long27km_fnAvgProdPriceForZip(@OfferingID INT)
 RETURNS MONEY
 AS
@@ -1158,6 +1161,7 @@ GO
 
 SELECT * FROM tblProductType
 
+/*business rule: only buy greens locally*/
 /*DROP FUNCTION long27km_OnlyBuyLocally*/
 
 ALTER /*CREATE*/ FUNCTION long27km_OnlyBuyGreensLocally()
