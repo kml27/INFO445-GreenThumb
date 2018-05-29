@@ -1224,11 +1224,10 @@ SET @Qty = (SELECT Qty FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, Det
 END
 GO
 
-
 ALTER TABLE tblLineItem
 DROP CONSTRAINT long27km_ckOnlyAvailable
 
-CREATE FUNCTION long27km_OnlyBuyAsManyAsAvailable()
+ALTER /*CREATE*/ FUNCTION long27km_OnlyBuyAsManyAsAvailable()
 RETURNS INT
 AS
 BEGIN
@@ -1237,17 +1236,23 @@ BEGIN
 
 	DECLARE @QtyOffered INT = 0
 
-	IF (SELECT SUM(LI.Qty) 
+	IF EXISTS( (SELECT SUM(LI.Qty) AS TotalSold 
 		FROM tblLineItem LI 
 		JOIN tblOffering O
-		ON LI.OfferingID = O.OfferingID)
-		> 
-		( SELECT CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END 
+		ON LI.OfferingID = O.OfferingID
+		JOIN 
+		( SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Avail 
 			FROM tblDetail D
 			JOIN tblDetailType DT
 			ON D.DetailTypeID = DT.DetailTypeID
-			WHERE DT.DetailTypeName='Quantity') 
+			JOIN tblOffering O
+			ON O.OfferingID = D.OfferingID
+			WHERE DT.DetailTypeName='Quantity') SQ
+		ON O.OfferingID = SQ.OfferingID 
 		
+		GROUP BY O.OfferingID, SQ.Avail
+		HAVING SUM(LI.Qty) > SQ.Avail) )
+
 		SET @RESULT = 1
 
 
@@ -1258,21 +1263,51 @@ ALTER TABLE tblLineItem WITH NOCHECK
 ADD CONSTRAINT long27km_ckOnlyAvailable
 CHECK (dbo.long27km_OnlyBuyAsManyAsAvailable()=0)
 
+/*ALTER TABLE tblLineItem
+DROP CONSTRAINT long27km_ckOnlyAvailable*/
 
-SELECT OfferingID, Qty FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity') SQ WHERE SQ.Qty < 5
+SELECT SQ_LI.OfferingID, SQ_LI.TotalSold, SQ2.Qty FROM (SELECT O.OfferingID, SUM(LI.Qty) AS TotalSold 
+		FROM tblLineItem LI 
+		JOIN tblOffering O
+		ON LI.OfferingID = O.OfferingID
+		GROUP BY O.OfferingID
+		) SQ_LI
+JOIN 
+(SELECT PT.ProductTypeName, SQ.OfferingID, Qty FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity') SQ JOIN tblOffering O ON O.OfferingID = SQ.OfferingID JOIN tblProduct P on P.ProductID = O.ProductID JOIN tblProductType PT ON PT.ProductTypeID = P.ProductTypeID) SQ2 ON SQ_LI.OfferingID = SQ2.OfferingID WHERE SQ2.Qty >  SQ_LI.TotalSold
+
+SELECT * 
+FROM tblOffering O
+JOIN tblProduct P
+ON O.ProductID = P.ProductID
+ WHERE OfferingID = 1
 
 
 DECLARE @Count INT = 0
 EXEC long27km_GetQuantityOffered @OfferingID = 1, @Qty = @Count OUTPUT
 PRINT @Count
 
-SELECT * FROM tblOrder Ord JOIN tblLineItem LI ON Ord.OrderID = LI.OrderID JOIN tblOffering O ON O.OfferingID = LI.OfferingID JOIN tblAddress A ON O.AddressID = A.AddressID JOIN (SELECT CustomerID, FirstName, LastName, DOB, Zip FROM tblCustomer C JOIN tblAddress A ON C.AddressID = A.AddressID) SQ ON SQ.Zip = A.Zip JOIN tblCustomer S ON S.CustomerID = O.SellerID WHERE O.OfferingID = 32
-
-
+SELECT * 
+	FROM tblOrder Ord
+	JOIN tblLineItem LI 
+	ON Ord.OrderID = LI.OrderID 
+	JOIN tblOffering O 
+	ON O.OfferingID = LI.OfferingID 
+	JOIN tblAddress A 
+	ON O.AddressID = A.AddressID 
+	JOIN 
+		(SELECT CustomerID, FirstName, LastName, DOB, Zip AS CustZip 
+			FROM tblCustomer C 
+			JOIN tblAddress A 
+			ON C.AddressID = A.AddressID) SQ 
+	ON SQ.CustZip = A.Zip 
+	JOIN tblCustomer S 
+	ON S.CustomerID = O.SellerID 
+	WHERE O.OfferingID = 1
 
 DECLARE @Order INT
 DECLARE @Now DateTime =  (SELECT GetDate())
 
-EXEC jchou8_uspInsertAndReturnOrder @CustFname = 'Damion', @CustLname='Kinnebrew', @CustDOB = '1994-05-07', @DateTime = @Now, @ORID = @Order OUTPUT
+EXEC jchou8_uspInsertAndReturnOrder @CustFname = 'Eleonora', @CustLname='Leisy', @CustDOB = '1950-05-12', @DateTime = @Now, @ORID = @Order OUTPUT
 
-EXEC jchou8_uspInsertLineItemWithID @SellFName = 'Eilene', @SellLName = 'Stickman', @SellDOB='1958-03-10', @OffName='Sweet Potato from Eilene Stickman', @OffStart='2018-05-09', @ORID=@Order, @Quantity = 5
+EXEC jchou8_uspInsertLineItemWithID @SellFName = 'Maryrose', @SellLName = 'Nooe', @SellDOB='1949-03-30', @OffName='Asparagus from Maryrose Nooe', @OffStart='2018-05-09', @ORID=@Order, @Quantity = 1
+
