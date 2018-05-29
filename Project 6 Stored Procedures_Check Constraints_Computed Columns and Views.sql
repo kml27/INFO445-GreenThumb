@@ -701,16 +701,19 @@ ELSE
 GO
 
 /* Insert a simulated order with random offerings */
-CREATE PROCEDURE jchou8_uspSimulateOrder
+ALTER /*CREATE*/ PROCEDURE jchou8_uspSimulateOrder
 @Run INT
 AS
 DECLARE @CustID INT 
 DECLARE @OrderID INT
-DECLARE @OfferingID INT
+DECLARE @OfferingID INT = NULL
 
 DECLARE @CustFname varchar(100)
 DECLARE @CustLname varchar(100)
 DECLARE @CustDOB DATE
+
+/*added by Ken*/
+DECLARE @CustZip varchar(20)
 
 DECLARE @SellFname varchar(100)
 DECLARE @SellLname varchar(100)
@@ -731,9 +734,15 @@ BEGIN
 	SET @CustLname = (SELECT LastName FROM tblCustomer WHERE CustomerID = @CustID)
 	SET @CustDOB = (SELECT DOB FROM tblCustomer WHERE CustomerID = @CustID)
 
+	/*added by Ken*/
+	SET @CustZip = (SELECT Zip FROM tblAddress A JOIN tblCustomer C ON C.AddressID = A.AddressID WHERE CustomerID = @CustID)  
+
+	/*added by ken*/
+	IF NOT EXISTS (SELECT TOP 1 OfferingID FROM tblOffering O JOIN tblAddress A ON O.AddressID = A.AddressID WHERE A.Zip = @CustZip ORDER BY NEWID()) CONTINUE
+
 	SET @NumLineItems = RAND() * 5 + 1
 	SET @OrdDateTime = CURRENT_TIMESTAMP
-
+	
 	EXEC jchou8_uspInsertAndReturnOrder
 	@CustFname = @CustFname,
 	@CustLname = @CustLname,
@@ -743,7 +752,14 @@ BEGIN
 
 	WHILE @NumLineItems > 0
 	BEGIN
-		SET @OfferingID = (SELECT TOP 1 OfferingID FROM tblOffering ORDER BY NEWID())
+
+		/*modified by Ken*/
+		SET @OfferingID = (SELECT TOP 1 OfferingID FROM tblOffering O JOIN tblAddress A ON O.AddressID = A.AddressID WHERE A.Zip = @CustZip ORDER BY NEWID())
+
+		/*added by Ken*/
+		IF @OfferingID IS NULL
+			PRINT 'NO LOCAL OFFERINGS'
+			break
 
 		SET @SellFname = (SELECT C.FirstName FROM tblOffering O JOIN tblCustomer C ON O.SellerID = C.CustomerID WHERE O.OfferingID = @OfferingID)
 		SET @SellLname = (SELECT C.LastName FROM tblOffering O JOIN tblCustomer C ON O.SellerID = C.CustomerID WHERE O.OfferingID = @OfferingID)
@@ -1144,7 +1160,7 @@ SELECT * FROM tblProductType
 
 /*DROP FUNCTION long27km_OnlyBuyLocally*/
 
-CREATE FUNCTION long27km_OnlyBuyGreensLocally()
+ALTER /*CREATE*/ FUNCTION long27km_OnlyBuyGreensLocally()
 RETURNS INT
 AS
 BEGIN
@@ -1171,9 +1187,10 @@ BEGIN
 		AND (PT.ProductTypeName LIKE '%greens%'
 		OR PT.ProductTypeName LIKE '%pome%'
 		OR PT.ProductTypeName Like '%berry%'))
+		BEGIN
 		
 		SET @RESULT = 1
-
+		END
 
 	RETURN @RESULT
 END
@@ -1183,12 +1200,29 @@ ADD CONSTRAINT long27km_ckLocalBuyGreens
 CHECK (dbo.long27km_OnlyBuyGreensLocally()=0)
 
 /*ALTER TABLE tblLineItem
-DROP CONSTRAINT long27km_ckLocalBuy*/
+DROP CONSTRAINT long27km_ckLocalBuyGreens*/
 
+/*This constraint is checked even during a transaction, it's preventing any orders from being created as is so we're dropping it for now*/
+ALTER TABLE tblOrder
+DROP CONSTRAINT CK_minPayLessThan10
 
-EXEC jchou8_uspSimulateOrder @Run = 1
+EXEC jchou8_uspSimulateOrder @Run = 10
 
 SELECT * FROM tblDetailType
+
+GO
+ALTER /*CREATE*/ PROC long27km_GetQuantityOffered
+@OfferingID INT,
+@Qty INT OUTPUT
+AS
+BEGIN 
+SET @Qty = (SELECT Qty FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity' AND O.OfferingID = @OfferingID) SQ)
+END
+GO
+
+
+ALTER TABLE tblLineItem
+DROP CONSTRAINT long27km_ckOnlyAvailable
 
 CREATE FUNCTION long27km_OnlyBuyAsManyAsAvailable()
 RETURNS INT
@@ -1197,12 +1231,14 @@ BEGIN
 
 	DECLARE @RESULT INT = 0
 
+	DECLARE @QtyOffered INT = 0
+
 	IF (SELECT SUM(LI.Qty) 
 		FROM tblLineItem LI 
 		JOIN tblOffering O
 		ON LI.OfferingID = O.OfferingID)
 		> 
-		( SELECT DetailDesc 
+		( SELECT CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END 
 			FROM tblDetail D
 			JOIN tblDetailType DT
 			ON D.DetailTypeID = DT.DetailTypeID
@@ -1218,4 +1254,21 @@ ALTER TABLE tblLineItem WITH NOCHECK
 ADD CONSTRAINT long27km_ckOnlyAvailable
 CHECK (dbo.long27km_OnlyBuyAsManyAsAvailable()=0)
 
-SELECT * FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity') SQ WHERE SQ.Qty < 5
+
+SELECT OfferingID, Qty FROM (SELECT O.OfferingID, CASE WHEN TRY_CONVERT(INT, DetailDesc) IS NOT NULL THEN CAST(DetailDesc AS INT) ELSE 0 END AS Qty, DetailTypeName from tblOffering O join tblDetail D on O.OfferingID = D.OfferingID JOIN tblDetailType DT ON D.DetailTypeID = DT.DetailTypeID WHERE DT.DetailTypeName = 'Quantity') SQ WHERE SQ.Qty < 5
+
+
+DECLARE @Count INT = 0
+EXEC long27km_GetQuantityOffered @OfferingID = 1, @Qty = @Count OUTPUT
+PRINT @Count
+
+SELECT * FROM tblOrder Ord JOIN tblLineItem LI ON Ord.OrderID = LI.OrderID JOIN tblOffering O ON O.OfferingID = LI.OfferingID JOIN tblAddress A ON O.AddressID = A.AddressID JOIN (SELECT CustomerID, FirstName, LastName, DOB, Zip FROM tblCustomer C JOIN tblAddress A ON C.AddressID = A.AddressID) SQ ON SQ.Zip = A.Zip JOIN tblCustomer S ON S.CustomerID = O.SellerID WHERE O.OfferingID = 32
+
+
+
+DECLARE @Order INT
+DECLARE @Now DateTime =  (SELECT GetDate())
+
+EXEC jchou8_uspInsertAndReturnOrder @CustFname = 'Damion', @CustLname='Kinnebrew', @CustDOB = '1994-05-07', @DateTime = @Now, @ORID = @Order OUTPUT
+
+EXEC jchou8_uspInsertLineItemWithID @SellFName = 'Eilene', @SellLName = 'Stickman', @SellDOB='1958-03-10', @OffName='Sweet Potato from Eilene Stickman', @OffStart='2018-05-09', @ORID=@Order, @Quantity = 5
