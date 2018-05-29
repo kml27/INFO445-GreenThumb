@@ -80,7 +80,7 @@ ROLLBACK TRAN G1
 ELSE
 COMMIT TRAN G1
 
-SET @Run = @Run -1
+SET @Run = @Run - 1
 END
 
 
@@ -93,10 +93,10 @@ RETURNS INT
 AS
 BEGIN
 DECLARE @Ret INT = 0
-IF EXISTS (SELECT *
+IF EXISTS (SELECT C.CustomerID
 			FROM tblOffering O JOIN tblCustomer C ON O.SellerID = C.CustomerID
 							JOIN tblProduct P ON O.ProductID = P.ProductID
-			WHERE C.DOB < (SELECT GetDate() - (365.25 * 18)))
+			WHERE C.DOB > (SELECT GetDate() - (365.25 * 18)))
 SET @Ret = 1
 RETURN @Ret
 END
@@ -107,12 +107,12 @@ ADD CONSTRAINT CK_No18Seller
 CHECK (dbo.fn_No18Seller() = 0)
 
 /*All the total price in each order should at least $10.00 (min pay is 10.00)*/
-CREATE FUNCTION fn_minOrderPay10()
+ALTER FUNCTION fn_minOrderPay10()
 RETURNS INT
 AS
 BEGIN
 DECLARE @Ret INT = 0
-IF EXISTS (SELECT *
+IF EXISTS (SELECT ORD.OrderID
 			FROM tblOrder ORD JOIN tblLineItem L ON ORD.OrderID = L.OrderID
 			JOIN tblOffering O ON L.OfferingID = O.OfferingID
 			GROUP BY ORD.OrderID
